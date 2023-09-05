@@ -2,15 +2,16 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { PropsWithChildren, useEffect, useState } from 'react';
-import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import { store } from './redux/store';
 import { decrement, increment, set } from './redux/actions/countAction';
 import { Button } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
-// import { Icon } from '@rneui/themed';
+import {ImageLibraryOptions, launchImageLibrary, launchCamera, CameraOptions} from 'react-native-image-picker';
 
 import * as Location from 'expo-location';
+import * as ImagePicker from 'expo-image-picker';
 
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
   const [selectedContinent, setSelectedContinent] = useState('all');
   const [location, setLocation] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<any>(null);
   // const [counter, setCounter] = useState(0);
   const dispatch = useDispatch();
  
@@ -140,11 +142,103 @@ export default function Home() {
     )
   };
 
+
+  // const openImagePicker = () => {
+  //   const options: ImageLibraryOptions = {
+  //     mediaType: 'photo',
+  //     includeBase64: false,
+  //     maxHeight: 2000,
+  //     maxWidth: 2000,
+  //   };
+
+  //   launchImageLibrary(options, (response:any) => {
+  //     if (response.didCancel) {
+  //       console.log('User cancelled image picker');
+  //     } else if (response.error) {
+  //       console.log('Image picker error: ', response.error);
+  //     } else {
+  //       let imageUri = response.uri || response.assets?.[0]?.uri;
+  //       setSelectedImage(imageUri);
+  //     }
+  //   });
+  // };
+
+  // const handleCameraLaunch = () => {
+  //   const options: CameraOptions = {
+  //     mediaType: 'photo',
+  //     includeBase64: false,
+  //     maxHeight: 2000,
+  //     maxWidth: 2000,
+  //   };
+  
+  //   launchCamera(options, (response:any) => {
+  //     if (response.didCancel) {
+  //       console.log('User cancelled camera');
+  //     } else if (response.error) {
+  //       console.log('Camera Error: ', response.error);
+  //     } else {
+  //       let imageUri = response.uri || response.assets?.[0]?.uri;
+  //       setSelectedImage(imageUri);
+  //       console.log(imageUri);
+  //     }
+  //   });
+  // }
+
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
+  const takeImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
+  };
+
   const Settings = ({navigation}: {navigation: any}) => {
     return (
-        <View style={styles.container2}>
+        <View style={styles.container3}>
             <Text style={styles.counter_text}>Location</Text>
-            <Text style={styles.location}>{text}</Text>
+            <Text style={styles.settingText}>{text}</Text>
+
+            <Text style={styles.counter_text}>Last Population</Text>
+            <Text style={styles.settingText}>{count}</Text>
+
+            <View style={styles.imgButton}>
+              <Button title="Take Photo" onPress={takeImage} />
+            </View>
+            <View style={styles.imgButton2}>
+              <Button title="Choose Photo" onPress={pickImage} />
+            </View>
+            {selectedImage && (
+              <Image
+                source={{ uri: selectedImage }}
+                style={{ flex: 1 }}
+                resizeMode="contain"
+              />
+            )}
+            
         </View>
     )
   };
@@ -323,8 +417,22 @@ type ContinentsLayoutProps = PropsWithChildren<{
       flexDirection: 'column',
       padding: 50,
     },
-    location: {
+    container3: {
+      flex: 1,
+      backgroundColor: '#fff',
+      padding: 10,
+      alignItems: 'center',
+    },
+    settingText: {
         paddingTop: 20,
+        textAlign: 'center',
+    },
+    imgButton: {
+      paddingTop: 60,
+      paddingBottom: 20
+    },
+    imgButton2: {
+      paddingBottom: 20
     }
   });
   
