@@ -12,6 +12,7 @@ import {ImageLibraryOptions, launchImageLibrary, launchCamera, CameraOptions} fr
 
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import UserLocation from './UserLocation';
 
 
 export default function Home() {
@@ -221,6 +222,8 @@ export default function Home() {
         <View style={styles.container3}>
             <Text style={styles.counter_text}>Location</Text>
             <Text style={styles.settingText}>{text}</Text>
+
+            <UserLocation></UserLocation>
 
             <Text style={styles.counter_text}>Last Population</Text>
             <Text style={styles.settingText}>{count}</Text>
