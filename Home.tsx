@@ -237,7 +237,7 @@ export default function Home() {
             {selectedImage && (
               <Image
                 source={{ uri: selectedImage }}
-                style={{ flex: 1 }}
+                style={{ flex: 1, width:500, height:500 }}
                 resizeMode="contain"
               />
             )}
