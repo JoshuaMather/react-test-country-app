@@ -1,42 +1,37 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StatusBar } from 'expo-status-bar';
 import { PropsWithChildren, useEffect, useState } from 'react';
-import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
+import { FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, Image, ActivityIndicator } from 'react-native';
 import { Provider, useDispatch, useSelector } from 'react-redux';
-import { store } from './redux/store';
-import { decrement, increment, set } from './redux/actions/countAction';
 import { Button } from 'react-native-elements';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {ImageLibraryOptions, launchImageLibrary, launchCamera, CameraOptions} from 'react-native-image-picker';
-
-import * as Location from 'expo-location';
-import * as ImagePicker from 'expo-image-picker';
-import UserLocation from './UserLocation';
+import Settings from '../settings/SettingsPage';
+import CountryDetails from '../country/CountryDetails';
+import { set } from '../../redux/actions/countAction';
 
 
 export default function Home() {
     // const countriesData = [{"name":"Afghanistan"},{"name":"Åland Islands"},{"name":"Albania"},{"name":"Algeria"}]
   const [countriesData, setCountiresData] = useState<any[]>([]);
   const [selectedContinent, setSelectedContinent] = useState('all');
-  const [location, setLocation] = useState<any>(null);
-  const [errorMsg, setErrorMsg] = useState<any>(null);
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [loading, setLoading] = useState<Boolean>(false);
   // const [counter, setCounter] = useState(0);
   const dispatch = useDispatch();
- 
-  const count = useSelector((store:any) => store.count.count);
+
 
   function fetchCountriesData() {
+    setLoading(true);
     // console.log('https://restcountries.com/v3.1/'+selectedContinent);
-    fetch('https://restcountries.com/v3.1/'+selectedContinent)
-    .then(res => res.json())
-    .then(json => setCountiresData(sortCountriesAlphabetically(json)))
-    .catch(err => console.error(err))
+    setTimeout(() => {
+      fetch('https://restcountries.com/v3.1/'+selectedContinent)
+      .then(res => res.json())
+      .then(json => setCountiresData(sortCountriesAlphabetically(json)))
+      .catch(err => console.error(err))
+      .finally(() => setLoading(false))
+    }, 1000);
   }
 
   function sortCountriesAlphabetically(data: any[]) {
-    // console.log(data);
     const sortedData = data.sort((a,b) => {
       const aName = a.name.common;
       const bName = b.name.common;
@@ -50,27 +45,6 @@ export default function Home() {
     fetchCountriesData();
   }, [selectedContinent]) // empty array so only runs on mount
 
-  useEffect(() => {
-    (async () => {
-      
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
-      }
-
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
-    })();
-  }, []);
-
-  let text = 'Waiting..';
-  if (errorMsg) {
-    text = errorMsg;
-  } else if (location) {
-    text = JSON.stringify(location);
-  }
-
   const Stack = createNativeStackNavigator();
 
   // const handleIncreament = () => {
@@ -81,19 +55,27 @@ export default function Home() {
   //   setCounter(counter - 1);
   // };
 
-  const handleIncrement = () => {
-    dispatch(increment());
-  };
- 
-  const handleDecrement = () => {
-    dispatch(decrement());
-  };
 
   const handleSet = (pop: any) => {
     dispatch(set(pop));
   };
 
   const HomeScreen = ({navigation}: {navigation: any}) => {
+    let listContent;
+    if(loading) {
+      listContent = <ActivityIndicator size="large" color='blue'/>
+    } else {
+      listContent = <FlatList
+      data={countriesData}
+      keyExtractor={item => item.name.common}
+      renderItem={({item})=> <Text style={styles.text} onPress={() => {
+        navigation.navigate('Country', {name: item.name.common, population: item.population});
+        // setCounter(item.population);
+        handleSet(item.population);
+      }}>{item.name.common}</Text>}
+      />
+    }
+
     return (
       <SafeAreaView style={styles.container}>
       <ContinentsLayout
@@ -109,39 +91,13 @@ export default function Home() {
       selectedValue={selectedContinent}
       setSelectedValue={setSelectedContinent}>
       <Text style={styles.title}>{'Country List'}</Text>
-      <FlatList
-          data={countriesData}
-          keyExtractor={item => item.name.common}
-          renderItem={({item})=> <Text style={styles.text} onPress={() => {
-            navigation.navigate('Country', {name: item.name.common, population: item.population});
-            // setCounter(item.population);
-            handleSet(item.population);
-          }}>{item.name.common}</Text>}
-      />
+      { listContent }
       </ContinentsLayout>
     </SafeAreaView>
     );
   };
 
-  const CountryDetails = ({route}: {route: any}) => {
-    return (
-        <View style={styles.container2}>
-          <Text style={styles.title_text}>{route.params.name}</Text>
-          <Text style={styles.counter_text}>Population</Text>
-          <Text style={styles.counter_text}>{count}</Text>
-    
-          <TouchableOpacity onPress={handleIncrement} style={styles.btn}>
-            <Text style={styles.btn_text}> Increment </Text>
-          </TouchableOpacity>
-    
-          <TouchableOpacity
-            onPress={handleDecrement}
-            style={{ ...styles.btn, backgroundColor: '#6e3b3b' }}>
-            <Text style={styles.btn_text}> Decrement </Text>
-          </TouchableOpacity>
-        </View>
-    )
-  };
+  
 
 
   // const openImagePicker = () => {
@@ -185,66 +141,9 @@ export default function Home() {
   //   });
   // }
 
-  const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
+  
 
-    console.log(result);
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
-
-  const takeImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    console.log(result);
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
-
-  const Settings = ({navigation}: {navigation: any}) => {
-    return (
-        <View style={styles.container3}>
-            <Text style={styles.counter_text}>Location</Text>
-            <Text style={styles.settingText}>{text}</Text>
-
-            <UserLocation></UserLocation>
-
-            <Text style={styles.counter_text}>Last Population</Text>
-            <Text style={styles.settingText}>{count}</Text>
-
-            <View style={styles.imgButton}>
-              <Button title="Take Photo" onPress={takeImage} />
-            </View>
-            <View style={styles.imgButton2}>
-              <Button title="Choose Photo" onPress={pickImage} />
-            </View>
-            {selectedImage && (
-              <Image
-                source={{ uri: selectedImage }}
-                style={{ flex: 1, width:500, height:500 }}
-                resizeMode="contain"
-              />
-            )}
-            
-        </View>
-    )
-  };
+  
 
     return (
         <NavigationContainer>
@@ -393,49 +292,5 @@ type ContinentsLayoutProps = PropsWithChildren<{
       marginBottom: 10,
       fontSize: 24,
     },
-    title_text: {
-      fontSize: 40,
-      fontWeight: '900',
-      marginBottom: 55,
-    },
-    counter_text: {
-      fontSize: 35,
-      fontWeight: '900',
-      margin: 15,
-    },
-    btn: {
-      backgroundColor: '#086972',
-      padding: 10,
-      margin: 10,
-      borderRadius: 10,
-    },
-    btn_text: {
-      fontSize: 23,
-      color: '#fff',
-    },
-    container2: {
-      flex: 1,
-      backgroundColor: '#fff',
-      alignItems: 'center',
-      flexDirection: 'column',
-      padding: 50,
-    },
-    container3: {
-      flex: 1,
-      backgroundColor: '#fff',
-      padding: 10,
-      alignItems: 'center',
-    },
-    settingText: {
-        paddingTop: 20,
-        textAlign: 'center',
-    },
-    imgButton: {
-      paddingTop: 60,
-      paddingBottom: 20
-    },
-    imgButton2: {
-      paddingBottom: 20
-    }
   });
   
